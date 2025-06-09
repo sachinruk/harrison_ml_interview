@@ -25,6 +25,15 @@ class ImageMasksDataset(Dataset):
         self.image_paths = image_paths
         self.mask_paths = mask_paths
         self.image_transform = image_transform
+        self.mask_transform = transforms.Compose(
+            [
+                [
+                    transform
+                    for transform in image_transform.transforms
+                    if not isinstance(transform, transforms.ColorJitter)
+                ]
+            ]
+        )  # Mask transform is the same as image, but without ColorJitter
 
     def __len__(self):
         return len(self.image_paths)
@@ -52,9 +61,7 @@ class ImageMasksDataset(Dataset):
 
         # 1) apply *shared* geometric transform
         img = self._apply_with_seed(img, self.image_transform, seed)
-        mask = self._apply_with_seed(mask, self.image_transform, seed).long()
-
-        # For segmentation it’s common to squeeze & cast the mask to long
+        mask = self._apply_with_seed(mask, self.mask_transform, seed).long()
 
         return img, mask
 
@@ -86,7 +93,7 @@ def get_train_test_split(
 def get_dataloaders(
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
-    image_transform: transforms.Compose,
+    image_transform: config.ImageTransforms,
     trainer_config: config.TrainerConfig,
 ) -> tuple[DataLoader, DataLoader]:
     """Create train and test dataloaders from a DataFrame."""
@@ -94,13 +101,13 @@ def get_dataloaders(
     train_dataset = ImageMasksDataset(
         image_paths=train_df["image_path"].tolist(),
         mask_paths=train_df["mask_path"].tolist(),
-        image_transform=image_transform,
+        image_transform=image_transform.train_transform,
     )
 
     test_dataset = ImageMasksDataset(
         image_paths=test_df["image_path"].tolist(),
         mask_paths=test_df["mask_path"].tolist(),
-        image_transform=image_transform,
+        image_transform=image_transform.val_transform,
     )
 
     # Create dataloaders

@@ -26,7 +26,7 @@ def get_wandb_logger(
     )
     if not is_logged_in:
         raise ValueError("Failed to login to wandb")
-    model_name = f"{trainer_config.model_name}-{training_date}"  # todo change to date from workflow
+    model_name = f"{training_date}"
     project = trainer_config.project_name
     if trainer_config.is_local:
         project = "debug-" + project
