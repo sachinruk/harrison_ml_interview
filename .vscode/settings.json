@@ -1,0 +1,23 @@
+{
+    // 📄 Files and Editor Defaults
+"files.insertFinalNewline": true,
+"files.autoSave": "afterDelay",
+"files.autoSaveDelay": 1000,
+"jupyter.debugJustMyCode": false, // so that you can inspect package source code
+"editor.formatOnSave": true,
+"editor.defaultFormatter": "ms-python.black-formatter",
+
+    // 🎨 Black and isort Formatting
+"black-formatter.args": ["--line-length", "100"],
+"black-formatter.cwd": "${workspaceFolder}",   
+"isort.check": true,
+
+    // 🐍 Python Settings
+"python.analysis.typeCheckingMode": "basic",
+"python.envFile": "${workspaceFolder}/.env",
+
+    // ✅ Python Testing Configuration
+"python.testing.unittestEnabled": false,
+"python.testing.pytestEnabled": true,
+"python.testing.cwd": "${workspaceFolder}/",
+}

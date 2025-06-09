@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/bin/python3",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+            },
+        },
+        {
+            "name": "Train",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/bin/python3",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": [
+                "--trainer-config-json",
+                "{\"learning_rate\":1e-3,\"batch_size\":8,\"num_workers\":0,\"kc_model_config\":{\"use_lstm\":false}}",
+            ],
+        },
+    ],
+}
