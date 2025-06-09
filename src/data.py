@@ -2,6 +2,7 @@ import ast
 import pathlib
 import random
 
+from loguru import logger
 import pandas as pd
 from PIL import Image
 from sklearn.model_selection import train_test_split
@@ -9,7 +10,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
-import config
+from src import config
 
 
 class ImageMasksDataset(Dataset):
@@ -77,6 +78,7 @@ def get_train_test_split(
         random_state=trainer_config.seed,
         stratify=df["Breed"].map(len),
     )
+    logger.info(f"Train set size: {len(train_df)}, Test set size: {len(test_df)}")
 
     return train_df, test_df
 
