@@ -32,6 +32,7 @@ class SegModelConfig(pydantic.BaseModel):
     model_name: str = "mobilenetv4_hybrid_medium.e200_r256_in12k_ft_in1k"
     decoder_channels: list[int] = [256, 128, 64, 32, 16]
     num_classes: int = 1  # Number of output channels (1 for a single-channel mask)
+    pretrained: bool = True
 
 
 class TrainerConfig(pydantic.BaseModel):
