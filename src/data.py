@@ -27,11 +27,12 @@ class ImageMasksDataset(Dataset):
         self.image_transform = image_transform
         self.mask_transform = transforms.Compose(
             [
-                [
-                    transform
-                    for transform in image_transform.transforms
-                    if not isinstance(transform, transforms.ColorJitter)
-                ]
+                transform
+                for transform in image_transform.transforms
+                if (
+                    not isinstance(transform, transforms.ColorJitter)
+                    and not isinstance(transform, transforms.Normalize)
+                )
             ]
         )  # Mask transform is the same as image, but without ColorJitter
 
@@ -61,7 +62,7 @@ class ImageMasksDataset(Dataset):
 
         # 1) apply *shared* geometric transform
         img = self._apply_with_seed(img, self.image_transform, seed)
-        mask = self._apply_with_seed(mask, self.mask_transform, seed).long()
+        mask = self._apply_with_seed(mask, self.mask_transform, seed)
 
         return img, mask
 
@@ -86,6 +87,12 @@ def get_train_test_split(
         stratify=df["Breed"].map(len),
     )
     logger.info(f"Train set size: {len(train_df)}, Test set size: {len(test_df)}")
+
+    if trainer_config.is_local:
+        # For local testing, use a smaller subset of the data
+        train_df = train_df.sample(n=min(100, len(train_df)), random_state=trainer_config.seed)
+        test_df = test_df.sample(n=min(20, len(test_df)), random_state=trainer_config.seed)
+        logger.info("Using a smaller subset for local testing")
 
     return train_df, test_df
 

@@ -110,7 +110,8 @@ class TimmUNet(nn.Module):
         for i, up in enumerate(self.up_blocks):  # go C5→C4→…→C1
             x = up(x, feats[-(i + 2)])
 
-        x = self.seg_head(x)  # logits (B, 1, H/2, W/2)
+        # x shape: (B, decoder_channels[-1], H/2, W/2)
+        x = self.seg_head(x) # (B, num_classes, H, W)
         if x.shape[-2:] != (h, w):
             x = F.interpolate(x, size=(h, w), mode="bilinear", align_corners=False)
-        return x  # (B, 1, H, W)
+        return x  # (B, num_classes, H, W)
