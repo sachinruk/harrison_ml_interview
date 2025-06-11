@@ -5,7 +5,6 @@ import torch
 from torchvision import transforms
 from timm.data.transforms import RandomResizedCropAndInterpolation, MaybeToTensor
 
-from src import config
 from src import data
 
 

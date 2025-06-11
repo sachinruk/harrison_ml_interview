@@ -1,10 +1,31 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import transforms
 import timm
 from timm.models.layers import ConvNormAct  # same conv-BN-activation block used inside timm
 
 from src import config
+
+
+def get_inverse_transform(
+    transfrom: transforms.Compose,
+) -> transforms.Normalize:
+    """
+    Get the inverse transform for the given transform.
+    This is used to convert the model output back to the original image space.
+    """
+    if not isinstance(transfrom, transforms.Compose):
+        raise ValueError("Expected a Compose transform")
+
+    # Extract mean and std from the last Normalize transform
+    for t in reversed(transfrom.transforms):
+        if isinstance(t, transforms.Normalize):
+            return transforms.Normalize(
+                mean=-t.mean / t.std,
+                std=1.0 / t.std,
+            )
+    raise ValueError("No Normalize transform found in the provided Compose transform")
 
 
 def get_base_model_and_transforms(
@@ -26,6 +47,7 @@ def get_base_model_and_transforms(
     image_transforms = config.ImageTransforms(
         train_transform=train_transform,
         val_transform=val_transform,
+        inverse_transform=get_inverse_transform(val_transform),
     )
     return encoder, image_transforms
 
@@ -57,7 +79,20 @@ class UpBlock(nn.Module):
         return x
 
 
-class TimmUNet(nn.Module):
+class ShiftedSigmoid(nn.Module):
+    """Shifted sigmoid activation function."""
+
+    def __init__(self, low: float = -0.1, high: float = 1.1):
+        super().__init__()
+        self.low = low
+        self.high = high
+        self.scale = high - low
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.sigmoid(x) * self.scale + self.low
+
+
+class UNet(nn.Module):
     """
     UNet with a timm backbone.
     • encoder_name – any model that supports features_only=True (MobileNet-V4, V3, V2, ResNet, ConvNeXt…)
@@ -101,6 +136,7 @@ class TimmUNet(nn.Module):
             ConvNormAct(decoder_channels[-1], decoder_channels[-1], kernel_size=3),
             ConvNormAct(decoder_channels[-1], segmentation_model_config.num_classes, kernel_size=3),
         )
+        self.final_activation = ShiftedSigmoid()
 
     def forward(self, x):
         h, w = x.shape[-2:]  # remember input size
@@ -111,7 +147,7 @@ class TimmUNet(nn.Module):
             x = up(x, feats[-(i + 2)])
 
         # x shape: (B, decoder_channels[-1], H/2, W/2)
-        x = self.seg_head(x) # (B, num_classes, H, W)
+        x = self.seg_head(x)  # (B, num_classes, H, W)
         if x.shape[-2:] != (h, w):
             x = F.interpolate(x, size=(h, w), mode="bilinear", align_corners=False)
-        return x  # (B, num_classes, H, W)
+        return self.final_activation(x)  # (B, num_classes, H, W)

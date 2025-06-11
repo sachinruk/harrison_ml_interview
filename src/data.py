@@ -67,7 +67,7 @@ class ImageMasksDataset(Dataset):
         return img, mask
 
 
-def get_train_test_split(
+def get_train_valid_split(
     df: pd.DataFrame,
     trainer_config: config.TrainerConfig,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -80,26 +80,26 @@ def get_train_test_split(
     df["Breed"] = df["Breed"].apply(ast.literal_eval)
 
     # Split the DataFrame into train and test sets
-    train_df, test_df = train_test_split(
+    train_df, valid_df = train_test_split(
         df,
         test_size=trainer_config.test_size,
         random_state=trainer_config.seed,
         stratify=df["Breed"].map(len),
     )
-    logger.info(f"Train set size: {len(train_df)}, Test set size: {len(test_df)}")
+    logger.info(f"Train set size: {len(train_df)}, Test set size: {len(valid_df)}")
 
     if trainer_config.is_local:
         # For local testing, use a smaller subset of the data
         train_df = train_df.sample(n=min(100, len(train_df)), random_state=trainer_config.seed)
-        test_df = test_df.sample(n=min(20, len(test_df)), random_state=trainer_config.seed)
+        valid_df = valid_df.sample(n=min(20, len(valid_df)), random_state=trainer_config.seed)
         logger.info("Using a smaller subset for local testing")
 
-    return train_df, test_df
+    return train_df, valid_df
 
 
 def get_dataloaders(
     train_df: pd.DataFrame,
-    test_df: pd.DataFrame,
+    valid_df: pd.DataFrame,
     image_transform: config.ImageTransforms,
     trainer_config: config.TrainerConfig,
 ) -> tuple[DataLoader, DataLoader]:
@@ -111,9 +111,9 @@ def get_dataloaders(
         image_transform=image_transform.train_transform,
     )
 
-    test_dataset = ImageMasksDataset(
-        image_paths=test_df["image_path"].tolist(),
-        mask_paths=test_df["mask_path"].tolist(),
+    valid_dataset = ImageMasksDataset(
+        image_paths=valid_df["image_path"].tolist(),
+        mask_paths=valid_df["mask_path"].tolist(),
         image_transform=image_transform.val_transform,
     )
 
@@ -123,16 +123,16 @@ def get_dataloaders(
         batch_size=trainer_config.batch_size,
         shuffle=True,
         num_workers=trainer_config.num_workers,
-        pin_memory=True,
+        # pin_memory=True,
         drop_last=True,  # Drop last incomplete batch
     )
 
-    test_loader = DataLoader(
-        test_dataset,
+    valid_loader = DataLoader(
+        valid_dataset,
         batch_size=trainer_config.batch_size,
         shuffle=False,
         num_workers=trainer_config.num_workers,
-        pin_memory=True,
+        # pin_memory=True,
     )
 
-    return train_loader, test_loader
+    return train_loader, valid_loader

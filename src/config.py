@@ -15,6 +15,7 @@ class DataConfig:
 class ImageTransforms:
     train_transform: transforms.Compose
     val_transform: transforms.Compose
+    inverse_transform: transforms.Normalize
 
 
 @dataclasses.dataclass

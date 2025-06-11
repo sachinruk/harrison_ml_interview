@@ -5,12 +5,12 @@ import src.config as config
 
 
 def test_segmentation_model():
-    # Test the TimmUNet class initialization
+    # Test the UNet class initialization
     encoder, _ = segmentation_model.get_base_model_and_transforms(
         config.SegModelConfig(pretrained=False)
     )
 
-    model = segmentation_model.TimmUNet(
+    model = segmentation_model.UNet(
         encoder=encoder, segmentation_model_config=config.SegModelConfig()
     )
 

@@ -9,7 +9,7 @@ from src import (
     config,
     data,
     segmentation_model,
-    # trainer,
+    trainer,
     wandb_utils,
 )
 
@@ -34,10 +34,25 @@ def train(trainer_config_json: str = "{}", training_date: str = "") -> None:
 
     df = pd.read_csv(config.DataConfig.pets_csv)
     logger.info("Data loaded from CSV")
-    train_df, test_df = data.get_train_test_split(df, trainer_config)
-    logger.info("Train-test split completed")
-    train_dl, test_dl = data.get_dataloaders(train_df, test_df, image_transforms, trainer_config)
+    train_df, valid_df = data.get_train_valid_split(df, trainer_config)
+    logger.info("Train-validation split completed")
+    train_dl, valid_dl = data.get_dataloaders(train_df, valid_df, image_transforms, trainer_config)
     logger.info("Data loaders created")
+
+    model = segmentation_model.UNet(
+        encoder=encoder,
+        segmentation_model_config=trainer_config.segmentation_model_config,
+    )
+    logger.info("Model initialized")
+
+    logger.info("Training started")
+    trainer.train(
+        model=model,
+        train_dl=train_dl,
+        valid_dl=valid_dl,
+        trainer_config=trainer_config,
+        image_transforms=image_transforms,
+    )
 
 
 # Entry point for the CLI app
