@@ -30,7 +30,7 @@ class SegModelConfig(pydantic.BaseModel):
     embedding_dim: int = 768
     hidden_size: int = 128
     num_layers: int = 3
-    model_name: str = "mobilenetv4_hybrid_medium.e200_r256_in12k_ft_in1k"
+    model_name: str = "efficientnet_b3.ra2_in1k"
     decoder_channels: list[int] = [256, 128, 64, 32, 16]
     num_classes: int = 1  # Number of output channels (1 for a single-channel mask)
     pretrained: bool = True
@@ -38,7 +38,7 @@ class SegModelConfig(pydantic.BaseModel):
 
 class TrainerConfig(pydantic.BaseModel):
     seed: int = 42
-    batch_size: int = 32
+    batch_size: int = 64
     accumulate_grad_batches: int = 1
     num_workers: int = 4
     learning_rate: float = 1e-3
