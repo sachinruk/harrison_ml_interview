@@ -7,6 +7,7 @@ import wandb
 
 from src import config
 from src import segmentation_model
+from src import losses
 
 
 class LightningModule(L.LightningModule):
@@ -102,7 +103,7 @@ def train(
     trainer_config: config.TrainerConfig,
     image_transforms: config.ImageTransforms,
 ):
-    loss_fn = nn.L1Loss()
+    loss_fn = losses.get_loss_fn(trainer_config.loss_fn_name)
     lightning_module = LightningModule(
         model, trainer_config.learning_rate, loss_fn, image_transforms
     )
@@ -116,7 +117,7 @@ def train(
         logger=logger,
         enable_progress_bar=trainer_config.is_local,
         log_every_n_steps=100,
-        limit_train_batches=20 if trainer_config.is_local else 1.0,
-        limit_val_batches=3 if trainer_config.is_local else 1.0,
+        # limit_train_batches=20 if trainer_config.is_local else 1.0,
+        # limit_val_batches=3 if trainer_config.is_local else 1.0,
     )
     trainer.fit(lightning_module, train_dl, valid_dl)

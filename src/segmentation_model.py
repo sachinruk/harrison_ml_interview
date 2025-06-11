@@ -92,6 +92,23 @@ class ShiftedSigmoid(nn.Module):
         return torch.sigmoid(x) * self.scale + self.low
 
 
+class Squasher(nn.Module):
+    """Piece-wise-linear ‘squash’:
+    x            for 0 ≤ x ≤ 1
+    alpha·x          for x < 0
+    1 + alpha(x–1)   for x > 1
+    """
+
+    def __init__(self, alpha: float = 0.1):
+        super().__init__()
+        self.alpha = alpha  # make this a nn.Parameter if you want it learnable
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # keep the in-range part; everything else becomes the ‘excess’
+        clamped = x.clamp(0.0, 1.0)  # or F.hardtanh(x, 0.0, 1.0)
+        return clamped + self.alpha * (x - clamped)
+
+
 class UNet(nn.Module):
     """
     UNet with a timm backbone.

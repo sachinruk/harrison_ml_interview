@@ -47,6 +47,7 @@ class TrainerConfig(pydantic.BaseModel):
 
     project_name: str = "pets_segmentation"
     is_local: bool = True
+    loss_fn_name: str = "l1_plus_tv"  # Options: "l1", "l1_plus_tv"
 
     segmentation_model_config: SegModelConfig = SegModelConfig()
 
