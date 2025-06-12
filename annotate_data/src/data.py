@@ -78,6 +78,14 @@ def detect_objects(
     return all_detected_objects
 
 
+def process_detected_objects(
+    detected_objects: list[dict[str, dict[str, Any]]],
+) -> tuple[list[list[str]], list[list[list[int]]]]:
+    labels = [detected_object["<OD>"]["labels"] for detected_object in detected_objects]
+    bboxes = [detected_object["<OD>"]["bboxes"] for detected_object in detected_objects]
+    return labels, bboxes
+
+
 def get_image_dataset():
     df = pd.read_csv(config.CSV_FILE)
     df["image_path"] = df["Sample_ID"].map(
@@ -93,7 +101,10 @@ def get_image_dataset():
         batch_size=config.ObjectDectionModel.batch_size,
         torch_dtype=torch.float16,
     )
-    df["detected_objects"] = detected_objects
+    labels, bboxes = process_detected_objects(detected_objects)
+    df["detected_labels"] = labels
+    df["detected_bboxes"] = bboxes
+    df.to_parquet("data/cats_and_dogs/detected_objects.parquet", index=False)
 
 
 if __name__ == "__main__":
