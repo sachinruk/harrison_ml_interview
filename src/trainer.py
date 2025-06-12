@@ -3,11 +3,13 @@ from lightning.pytorch.loggers import WandbLogger
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torchmetrics.classification import BinaryPrecision, BinaryRecall
 import wandb
 
 from src import config
 from src import segmentation_model
 from src import losses
+from src import metrics
 
 
 class LightningModule(L.LightningModule):
@@ -23,6 +25,8 @@ class LightningModule(L.LightningModule):
         self.learning_rate = learning_rate
         self.loss_fn = loss_fn
         self.image_transforms = image_transforms
+        self.valid_precision = metrics.AveragePrecision()
+        self.valid_recall = metrics.AverageRecall()
 
     def common_step(
         self, x: tuple[torch.Tensor, torch.Tensor], prefix: str, batch_idx: int
@@ -30,19 +34,36 @@ class LightningModule(L.LightningModule):
         image, mask = x
         out = self.model(image)
         loss = self.loss_fn(out, mask)
-        self.log(f"{prefix}_loss", loss, on_step=True, on_epoch=True)
+        self.log(f"{prefix}_loss", loss, on_step=False, on_epoch=True)
 
-        if batch_idx == 0 and prefix == "valid":
-            table = wandb.Table(columns=["image", "mask", "prediction"])
+        if prefix == "valid":
+            # Log metrics for validation
+            self.valid_precision.update(out, (mask > config.TRIMAP_THRESHOLD).long())
+            self.valid_recall.update(out, (mask > config.TRIMAP_THRESHOLD).long())
 
-            for i in range(len(image)):
-                # Undo your dataset-level normalization / resizing, etc.
-                img_vis = self.image_transforms.inverse_transform(image[i])
+            self.log(
+                f"{prefix}_precision",
+                self.valid_precision,
+                on_step=False,
+                on_epoch=True,
+            )
+            self.log(
+                f"{prefix}_recall",
+                self.valid_recall,
+                on_step=False,
+                on_epoch=True,
+            )
+            if batch_idx == 0:
+                table = wandb.Table(columns=["image", "mask", "prediction"])
 
-                # Add one row per sample
-                table.add_data(wandb.Image(img_vis), wandb.Image(mask[i]), wandb.Image(out[i]))
+                for i in range(len(image)):
+                    # Undo your dataset-level normalization / resizing, etc.
+                    img_vis = self.image_transforms.inverse_transform(image[i])
 
-            wandb.log({f"{prefix}_epoch_{self.current_epoch}": table})
+                    # Add one row per sample
+                    table.add_data(wandb.Image(img_vis), wandb.Image(mask[i]), wandb.Image(out[i]))
+
+                wandb.log({f"{prefix}_epoch_{self.current_epoch}": table})
 
         return loss
 
@@ -109,7 +130,7 @@ def train(
     )
     logger = WandbLogger()
     trainer = L.Trainer(
-        max_epochs=3 if trainer_config.is_local else trainer_config.num_epochs,
+        max_epochs=10 if trainer_config.is_local else trainer_config.num_epochs,
         accumulate_grad_batches=trainer_config.accumulate_grad_batches,
         gradient_clip_val=1.0,
         precision=32,

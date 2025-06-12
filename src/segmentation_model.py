@@ -99,13 +99,13 @@ class Squasher(nn.Module):
     1 + alpha(x–1)   for x > 1
     """
 
-    def __init__(self, alpha: float = 0.1):
+    def __init__(self, alpha: float = 0.01):
         super().__init__()
         self.alpha = alpha  # make this a nn.Parameter if you want it learnable
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # keep the in-range part; everything else becomes the ‘excess’
-        clamped = x.clamp(0.0, 1.0)  # or F.hardtanh(x, 0.0, 1.0)
+        clamped = x.clamp(0.0, 1.0)
         return clamped + self.alpha * (x - clamped)
 
 
@@ -153,7 +153,7 @@ class UNet(nn.Module):
             ConvNormAct(decoder_channels[-1], decoder_channels[-1], kernel_size=3),
             ConvNormAct(decoder_channels[-1], segmentation_model_config.num_classes, kernel_size=3),
         )
-        self.final_activation = ShiftedSigmoid()
+        self.final_activation = Squasher()
 
     def forward(self, x):
         h, w = x.shape[-2:]  # remember input size
